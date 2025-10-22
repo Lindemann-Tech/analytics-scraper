@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Google Analytics Scrapper</title>
+    <!-- Socket IO Connection for Python Updates -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        background-image: linear-gradient(
+          to top,
+          #fad0c4 0%,
+          #fbc8e8 10%,
+          #fce2f1 20%,
+          #fdefff 30%,
+          #ffe6f0 40%,
+          #ffe0fa 50%,
+          #ffd8f8 60%,
+          #ffd1ff 70%,
+          #ffc1f7 85%,
+          #ffb8f1 100%
+        );
+        min-height: 100vh;
+        margin: 0;
+        font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+          "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .global-container {
+        display: flex;
+        gap: 20px;
+        padding: 20px;
+      }
+
+      .global-container > div {
+        flex: 1;
+      }
+
+      /* Left side with the form. */
+      .form-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #website-form {
+        /* Glass Polymorphism properties */
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 16px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(7.6px);
+        -webkit-backdrop-filter: blur(7.6px);
+        border: 1px solid rgba(255, 255, 255, 0.43);
+        padding: 30px;
+        width: 60%;
+      }
+
+      /* Inputs and labels styling */
+      form label {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      form input {
+        width: 100%;
+        padding: 8px 10px;
+        margin-bottom: 22px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+
+      form input[type="submit"] {
+        font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+          "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+        font-weight: bold;
+        font-size: 16px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: 0.5s ease-in;
+        border-color: transparent;
+      }
+
+      form input[type="submit"]:hover {
+        background-color: #b8b8b8;
+      }
+
+      .results-table {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .button-container {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 12px;
+      }
+
+      .button-container button {
+        padding: 4px 16px;
+        font-size: 16px;
+        font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+          "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+      }
+
+      #ga4_realtime_results {
+        border: 1px solid black;
+        border-spacing: 8px;
+        text-align: center;
+      }
+
+      #ga4_realtime_results tr {
+        border: 1px solid black;
+      }
+
+      @media screen and (max-width: 890px) {
+        .global-container {
+          flex-direction: column;
+        }
+
+        .results-table {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 
+    Values that matter from the form: 
+    Account ID:
+    Property ID:
+    GA4 Realtime URL: 
+    Website Homepage URL: 
+    -->
+    <h1>Google Realtime Tracking</h1>
+
+    <div class="global-container">
+      <div class="form-container">
+        <form id="website-form" action="/submit" method="POST">
+          <label for="ga4_account_id">GA4 Account ID:</label>
+          <input type="text" name="ga4_account_id" id="ga4_account_id" />
+          <label for="ga4_property_id">GA4 Property ID:</label>
+          <input type="text" name="ga4_property_id" id="ga4_property_id" />
+          <label for="ga4_realtime_url">GA4 Realtime URL:</label>
+          <input type="text" name="ga4_realtime_url" id="ga4_realtime_url" />
+          <label for="website_home_page">URL Homepage:</label>
+          <input type="text" name="website_home_page" id="website_home_page" />
+        </form>
+      </div>
+      <div class="results-table">
+        <div class="button-container">
+          <button class="table-action" onclick="">Quit</button>
+          <button
+            id="downloadButton"
+            class="table-action"
+            onclick="downloadTable()"
+          >
+            Download
+          </button>
+        </div>
+        <table id="ga4_realtime_results">
+          <thead>
+            <tr>
+              <th>TimeStamp:</th>
+              <th>Active Users:</th>
+              <th>Request Time: (Seconds)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Rows automatically should populate -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      function downloadTable() {
+        /* TODO: Should I pause the function when running? */
+        const table = document.getElementById("ga4_realtime_results");
+
+        const data = [];
+        const results = table.querySelectorAll('tbody tr');
+
+        rows.forEach(row => {
+          const rowData = [];
+          const cells = row.querySelectorAll('td, th');
+
+          cells.forEach(cell => {
+            rowData.push(cell.textContent.trim());
+          })
+          data.push(rowData);
+        })
+
+        console.dir(data);
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const socket = io();
+
+        socket.on("connect", () => {
+          console.log("Connected to Socket.IO Server: ", socket.id);
+        });
+
+        socket.on("user_values", (user_data) => {
+          console.log("Received:", user_data);
+
+          document.getElementById("ga4_account_id");
+          document.getElementById("ga4_property_id");
+          document.getElementById("ga4_realtime_url");
+          document.getElementById("website_home_page");
+
+          const ga4_account_id_inputElement = document.getElementById("ga4_account_id");
+          const ga4_property_id_inputElement = document.getElementById("ga4_property_id");
+          const ga4_realtime_url_inputElement = document.getElementById("ga4_realtime_url");
+          const homepage_url_inputElement = document.getElementById("website_home_page");
+
+          ga4_account_id_inputElement.value = user_data.account_id;
+          ga4_property_id_inputElement.value = user_data.property_id;
+          ga4_realtime_url_inputElement.value = user_data.ga4_url;
+          homepage_url_inputElement.value = user_data.homepage_url;
+
+          ga4_account_id_inputElement.disabled = true;
+          ga4_property_id_inputElement.disabled = true;
+          ga4_realtime_url_inputElement.disabled = true;
+          homepage_url_inputElement.disabled = true;
+        });
+
+        socket.on("new_data", (data) => {
+          console.log("Received:", data);
+
+          const tableBody = document
+            .getElementById("ga4_realtime_results")
+            .getElementsByTagName("tbody")[0];
+
+          const newRow = tableBody.insertRow();
+          newRow.insertCell(0).innerText = data.Timestamp || "";
+          newRow.insertCell(1).innerText = data.active_users || "";
+          newRow.insertCell(2).innerText = data.ping || "";
+        });
+
+        socket.on("disconnect", () => {
+          console.log("Disconnected");
+        });
+      });
+    </script>
+  </body>
+</html>
