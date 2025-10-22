@@ -1,3 +1,17 @@
+"""
+The following packages are required for full functionality: 
+Flask
+Flask-SocketIO
+Selenium
+Requests
+
+These packages are default by python:
+Threading
+Time
+OS
+Subprocess
+Datetime
+"""
 from flask import Flask
 from flask_socketio import SocketIO
 from utils.routes import b
